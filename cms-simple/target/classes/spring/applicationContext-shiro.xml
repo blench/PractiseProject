@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd"
+	default-lazy-init="true">
+
+	<description>Shiro安全配置</description>
+
+<!--
+	<bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager"> 
+        <property name="globalSessionTimeout" value="3600000"/> 
+    </bean> 
+-->
+	<!-- Shiro's main business-tier object for web-enabled applications -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="shiroDbRealm" />
+		<!--<property name="sessionManager" ref="sessionManager"/>-->
+		<property name="cacheManager" ref="shiroEhcacheManager" />
+	</bean>
+
+	<!-- Shiro Filter -->
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean" depends-on="frameperms">
+		<property name="securityManager" ref="securityManager" />
+		<property name="loginUrl" value="/login" />
+		<property name="successUrl" value="/" />
+		<!-- 没有权限跳转的url -->
+		<property name="unauthorizedUrl" value="/unauth" />
+		<!--
+			anon:任何人都可以访问
+			authc:必须登录才能访问
+			authc 和 user的区别是 user包含 rememberme,authc不包含
+			最后一句是 /**=user,frameperms 意思就是除了上面的那些,其他的所有都要经过 user和frameperms.
+			如果没有登陆 user就会阻断,不会执行到frameperms.
+			frameperms 就是我们自定义实现的过滤器,从数据库中查询用户的权限,
+			判断当前用户是否有权限访问拦截的url.
+		-->
+		<property name="filterChainDefinitions">
+			<value>
+				/login = authc
+				/logout = logout
+				/unauth = anon
+				/js/** = anon
+				/css/** = anon
+				/images/** = anon
+				/activeX/** = anon
+				/filemgr/** = anon
+				/broserver/**=anon
+				/** = user,frameperms
+			</value>
+		</property>
+		<!-- 声明自定义的过滤器 -->
+		<property name="filters">
+			<map>
+				<entry key="frameperms" value-ref="frameperms"></entry>
+			</map>
+		</property>
+	</bean>
+
+	<!-- 用户授权信息Cache, 采用EhCache -->
+	<bean id="shiroEhcacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<property name="cacheManagerConfigFile" value="classpath:ehcache/ehcache-shiro.xml"/>
+	</bean>
+	
+	<!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+</beans>
