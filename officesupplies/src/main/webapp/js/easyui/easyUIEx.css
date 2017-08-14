@@ -1,0 +1,4 @@
+.tooltip{/*解决EasyUI与bootstrap冲突时tip不显示的问题*/
+	opacity:1;
+	filter:alpha(opacity=100);
+}
